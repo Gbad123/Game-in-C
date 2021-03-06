@@ -49,7 +49,7 @@
 LIBS = -lGL -lGLU -lglut -lm -D__LINUX__
 
 
-a1: a1.c graphics.c visible.c mesh.c perlin.c graphics.h mesh.h fast_obj.h perlin.h
-	gcc a1.c graphics.c visible.c mesh.c perlin.c -o a1 $(LIBS) 
+a1: a1.c graphics.c visible.c mesh.c perlin.c test.c graphics.h mesh.h fast_obj.h perlin.h test.h
+	gcc a1.c graphics.c visible.c mesh.c perlin.c test.c -o a1 $(LIBS) 
 
 

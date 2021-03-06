@@ -102,7 +102,7 @@ int screenWidth = 1024;
 int screenHeight = 768;
 
 	/* command line flags */
-int flycontrol = 1;		// allow viewpoint to move in y axis when 1
+int flycontrol = 0;		// allow viewpoint to move in y axis when 1
 int displayAllCubes = 0;	// draw all of the cubes in the world when 1
 int testWorld = 0;		// sample world for timing tests
 int fps = 0;			// turn on frame per second output
@@ -134,7 +134,7 @@ short tubeVisible[TUBE_COUNT];
 	/* flag indicating the user wants the cube in front of them removed */
 int space = 0;
         /* flag indicates if map is to be printed */
-int displayMap = 1;
+int displayMap = 0;
 	/* flag indicating a fixed viewpoint - not updated by mouse/keyboard */
 int fixedVP = 0;
 
