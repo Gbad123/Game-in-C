@@ -62,6 +62,7 @@ extern void unsetAssignedTexture(int);
 extern int getAssignedTexture(int);
 extern void setTextureOffset(int, float, float);
 
+extern int PointInFrustum( float x, float y, float z );
 
 	/* flag which is set to 1 when flying behaviour is desired */
 extern int flycontrol;
@@ -877,18 +878,20 @@ void meshObjs(){
       usrX = abs(usrX);
       usrZ = abs(usrZ);
       //if the mesh is out of range hide it else show it
-      if(abs(usrX - x) > 15 || abs(usrZ - z) > 15){
+      if(abs(usrX - x) <= 15 && abs(usrZ - z) <= 15 && PointInFrustum(x,27,z)){
+         if(meshData[i][3] == 1 && levelFlag == 2){
+            drawMesh(i);
+            printf("Mesh #%d is visible\n",i);
+            meshData[i][3] = 0;
+         }
+      }
+
+      if(abs(usrX - x) > 15 || abs(usrZ - z) > 15 || !PointInFrustum(x,27,z)){
          //hidden flag
          if(meshData[i][3] == 0){
             hideMesh(i);
             printf("Mesh #%d is hidden\n",i);
             meshData[i][3] = 1;
-         }
-      }else{
-         if(meshData[i][3] == 1 && levelFlag == 2){
-            drawMesh(i);
-            printf("Mesh #%d is visible\n",i);
-            meshData[i][3] = 0;
          }
       }
    }
