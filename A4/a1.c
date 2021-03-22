@@ -125,6 +125,15 @@ extern int stairUpLocZ;
 extern int flagOut;
 extern int stairFlag;
 extern float meshData[10][10];
+extern int roomLenX[9];
+extern int roomLenZ[9];
+extern int roomX[9];
+extern int roomZ[9];
+
+int turn = 0;
+float playerPostionX = 0,playerPostionZ = 0; 
+int GPP[10][2];
+int count = 0;
 
 /********* end of my external variable declarations **************/
 
@@ -145,12 +154,58 @@ void collisionResponse() {
    int x = (int)curX*-1;
    int y = (int)curY*-1;
    int z = (int)curZ*-1;
+
+   for(int i = 0; i < 9; i++){
+      //get mod location
+      int mobX = (int)meshData[i][0];
+      int mobZ = (int)meshData[i][1];
+      
+      //check the 9 squares around the mob
+      for (int j = mobX-1; j <= mobX+1; j++){
+         for (int k = mobZ-1; k <= mobZ+1; k++){
+            //if player found, mesh is in the attack state, and mesh is alive
+            if (j == x && k == z && meshData[i][5] == 1 && meshData[i][6] == 0){
+               //hit chances
+               int hit =  rand() % 2;
+               if(hit == 1){
+                  printf("Mob #%d attacked\n",i);
+               }else{
+                  printf("Mob #%d's attack missed\n",i);
+               }
+               //change state
+               meshData[i][5] = 0;
+            }
+         }
+      }
+      //player moves to attack the mob
+      if (x == mobX && z == mobZ && meshData[i][6] == 0){
+         hit chance
+         int hit =  rand() % 2;
+         if(hit == 1 && meshData[i][5] == 0){
+            printf("Mob #%d eliminated\n",i);
+            unsetMeshID(i);
+            //killed flag
+            meshData[i][6] = 1;
+            //mob can attack
+            meshData[i][5] = 1;
+         }else{
+            printf("Mob #%d dodged\n",i);
+            curX = (int)oldX;
+            curY = (int)oldY;
+            curY--;
+            curZ = (int)oldZ;
+            //mob can attack
+            meshData[i][5] = 0;
+         }
+      }
+   }
+
    //something is infront of the view point
    if (world[x][y][z] != 0) {
       if (world[x][y+1][z] == 0) {
          y += 2; //climb if the spot above the view point is empty
          curY = y*-1;
-      } else {
+      }else{
          curX = (int)oldX;
          curY = (int)oldY;
          curY--;
@@ -158,7 +213,7 @@ void collisionResponse() {
          //set back to old locations
       }
    //out of bounds stay in bound
-   } else if ((x > WORLDX) || (x < 0)|| (z > WORLDZ) || (z < 0)) {
+   }else if((x > WORLDX) || (x < 0)|| (z > WORLDZ) || (z < 0)) {
       curX = (int)oldX;
       curY = (int)oldY;
       curZ = (int)oldZ;
@@ -342,6 +397,149 @@ float x, y, z;
       //move the clouds
       timer();
       meshObjs();
+
+      float playerX,playerY,playerZ;
+      getOldViewPosition(&playerX, &playerY, &playerZ);
+      int x = abs(((int)playerX*-1));
+      int z = abs(((int)playerZ*-1));
+
+      turn = 0;//player turn
+      int distFlag = 0;//distance flag
+
+      //seeing if the player has moved to a new spot
+      int a = (int)(playerX*-1 - playerPostionX);
+      int b = (int)(playerZ*-1 - playerPostionZ);
+      if(a != 0 || b != 0){
+         playerPostionX = playerX*-1;
+         playerPostionZ = playerZ*-1;
+         for(int i = 0; i < 9; i++){
+            //ai's turn
+            meshData[i][5] = 1;
+         }
+
+         //for all mesh
+         for (int i = 0; i < 9; i++){
+            if (x != GPP[i][1] || z != GPP[i][2]){
+               //Global player positioning
+               GPP[i][1] = playerPostionX;
+               GPP[i][2] = playerPostionZ;
+               turn = 1;//ai turn
+            }
+            if(turn = 1){
+               //cactus
+               if(meshData[i][4] == 3 && meshData[i][6] == 0){
+                  int mobX = (int)meshData[i][0];
+                  int mobZ = (int)meshData[i][1];
+               }
+               count++;
+               //look for fish
+               if(meshData[i][4] == 1 && meshData[i][6] == 0 && meshData[i][8] == 1){
+                  int xT, zT;
+                  if(meshData[i][7] == 1){
+                     //if the fish has been seen start chasing the player
+                     xT = GPP[i][1];
+                     zT = GPP[i][2];
+                  }else{
+                     //move around in the room
+                     xT = (rand () % roomLenX[i]) + roomX[i];
+                     zT = (rand () % roomLenZ[i]) + roomZ[i];
+                  }
+                  int meshX, meshZ; //mesh position
+                  int newMeshX, newMeshZ;
+                  int mX, mZ; //final mesh postion
+                  meshX = (int)meshData[i][0];
+                  meshZ = (int)meshData[i][1];
+                  double g = 0.0, h = 0.0, f = 0.0;
+                  double oldG = 1000.0, oldH = 1000.0, oldF = 1000.0;
+
+                  for (int j = meshX-1; j <= meshX+1; j++){
+                     for (int k = meshZ-1; k <= meshZ+1; k++){
+                        if(world[j][26][k] == 0){
+                           //calculation g, h, f for square around the mob position
+                           g = sqrt((j*2) + (k*2));
+                           h = abs(j-xT)+abs(k-zT);
+                           distFlag = h;
+                           f = g+h;
+                           //go for the smalles f
+                           if(oldF >= f){
+                              oldF = f;
+                              oldG = g;
+                              oldG = h;
+                              mX = j;
+                              mZ = k;
+                              distFlag = h;
+                           }
+                        }
+                     }
+                  }
+                  //save new mob positions
+                  meshData[i][0] = mX;
+                  meshData[i][1] = mZ;
+                  if(distFlag > 2){
+                     //stopping the ai 2 units away from the player
+                     //to allow the player to trigger combact
+                     setTranslateMesh(i,(float)mX,26.0,(float)mZ);
+                  }
+               }
+               //looking for bat
+               if(meshData[i][4] == 2 && meshData[i][6] == 0 && meshData[i][8] == 1){
+                  int xT, zT;
+                  if(meshData[i][7] == 1){
+                     //if the bat has been seen start chasing the player
+                     xT = GPP[i][1];
+                     zT = GPP[i][2];
+                  }else{
+                     //for mob 0-7 move to the room +1
+                     //mob8 go to room 0
+                     if(i != 8){
+                        xT = (rand () % roomLenX[i+1]) + roomX[i+1];
+                        zT = (rand () % roomLenZ[i+1]) + roomZ[i+1];
+                     }else{
+                        xT = (rand () % roomLenX[0]) + roomX[0];
+                        zT = (rand () % roomLenZ[0]) + roomZ[0];
+                     }
+                  }
+                  int meshX, meshZ; //mesh position
+                  int newMeshX, newMeshZ;
+                  int mX, mZ; //final mesh postion
+                  meshX = (int)meshData[i][0];
+                  meshZ = (int)meshData[i][1];
+                  double g = 0.0, h = 0.0, f = 0.0;
+                  double oldG = 1000.0, oldH = 1000.0, oldF = 1000.0;
+
+                  for (int j = meshX-1; j <= meshX+1; j++){
+                     for (int k = meshZ-1; k <= meshZ+1; k++){
+                        if(world[j][26][k] == 0){
+                           //calculation g, h, f for square around the mob position
+                           g = sqrt((j*2) + (k*2));
+                           h = abs(j-xT)+abs(k-zT);
+                           distFlag = h;
+                           f = g+h;
+                           //go for the smalles f
+                           if(oldF >= f){
+                              oldF = f;
+                              oldG = g;
+                              oldG = h;
+                              mX = j;
+                              mZ = k;
+                              distFlag = h;
+                           }
+                        }
+                     }
+                  }
+                  //saving new mesh locations
+                  meshData[i][0] = mX;
+                  meshData[i][1] = mZ;
+                  if(distFlag > 2){
+                     //stopping the ai 2 units away from the player
+                     //to allow the player to trigger combact
+                     setTranslateMesh(i,(float)mX,25.0,(float)mZ);
+                  }
+               }
+               turn = 0;
+            }
+         }
+      }
    }
 }
 

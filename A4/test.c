@@ -179,7 +179,12 @@ void buildIndoors(){
             inside[x][y][z] = world[x][y][z];
          }
       }
-   }   
+   }
+   //only make when on the proper floor
+   //meshData 8 if set 1 means its valid to be drawn
+   for (int i = 0; i < 10; i++){
+      meshData[i][8] = 1;
+   }  
 }
 
 void timer() {
@@ -200,7 +205,6 @@ void timer() {
          flag = 1;
          //Update cloud location
          moveClouds();
-         moveMesh();
          updateMap();
          //updatating the fow map
          float playerX,playerY,playerZ;
@@ -252,6 +256,11 @@ void rebuildIndoors(){
    //resetting fow
    memset(FOWmapWorld,0,sizeof(FOWmapWorld));
    levelFlag = 2;
+   //only make when on the proper floor
+   //meshData 8 if set 1 means its valid to be drawn
+   for (int i = 0; i < 10; i++){
+      meshData[i][8] = 1;
+   }  
 }
 
 void rebuildOutdoors(){
@@ -272,6 +281,11 @@ void rebuildOutdoors(){
    //reseting fow
    memset(FOWmapWorld,0,sizeof(FOWmapWorld));
    levelFlag = 1;
+   //only make when on the proper floor
+   //meshData 8 if set 1 means its valid to be drawn
+   for (int i = 0; i < 10; i++){
+      meshData[i][8] = 0;
+   }  
 }
 
 void gravity() {
@@ -746,6 +760,11 @@ void buildOutside(){
       }
    }
    levelFlag = 1;
+   //only make when on the proper floor
+   //meshData 8 if set 1 means its valid to be drawn
+   for (int i = 0; i < 10; i++){
+      meshData[i][8] = 0;
+   }  
 }
 
 void generateClouds(){
@@ -831,6 +850,9 @@ void createMesh(){
    int x, z;
    int i = 0;
    while (i < 9){
+      //setting type of mesh
+      int type = rand() % 3;
+      type++;
       //getting random mesh positions
       x = rand() % roomLenX[i];
       if(x==0){x++;}
@@ -839,11 +861,16 @@ void createMesh(){
       if(z==0){z++;}
       z += roomZ[i];
       //making sure nothing exists on that position
-      if(world[x][27][z] == 0 && world[x+1][27][z] == 0 && world[x-1][27][z] == 0){
-         setMeshID(i, 2, x, 27.0, z);
-         setScaleMesh(i, 0.2);
-         meshData[i][0] = x;
-         meshData[i][1] = z;
+      if(world[x][25][z] == 0 && world[x+1][25][z] == 0 && world[x-1][25][z] == 0){
+         setMeshID(i, type, x, 25.0, z);
+         setScaleMesh(i, 0.8);
+         meshData[i][0] = x; //x value
+         meshData[i][1] = z; //z value
+         meshData[i][4] = type; //type
+         meshData[i][5] = 0; //state (1 - attack, 0 - wait)
+         meshData[i][6] = 0; //dead or alive
+         meshData[i][7] = 0; //has been seen
+         meshData[i][8] = 0; //level check
          //hide by default
          hideMesh(i);
          i++;
@@ -853,7 +880,7 @@ void createMesh(){
 
 void moveMesh(){
    float x, z;
-   float y = 27;
+   float y = 25;
    for (int i = 0; i < 9; i++){
       x = meshData[i][0];
       z = meshData[i][1];
@@ -878,20 +905,23 @@ void meshObjs(){
       usrX = abs(usrX);
       usrZ = abs(usrZ);
       //if the mesh is out of range hide it else show it
-      if(abs(usrX - x) <= 15 && abs(usrZ - z) <= 15 && PointInFrustum(x,27,z)){
-         if(meshData[i][3] == 1 && levelFlag == 2){
-            drawMesh(i);
-            printf("Mesh #%d is visible\n",i);
-            meshData[i][3] = 0;
+      if(abs(usrX - x) < 15 && abs(usrZ - z) < 15 ){
+         if(PointInFrustum(x,26,z) || PointInFrustum(x,25,z)){
+            if(meshData[i][3] == 1 && levelFlag == 2 && meshData[i][6] == 0){
+               drawMesh(i);
+               meshData[i][3] = 0;
+               meshData[i][7] = 1;
+            }
          }
-      }
+      }else if ((abs(usrX - x) <= 2 && abs(usrZ - z) <= 2)){}
 
-      if(abs(usrX - x) > 15 || abs(usrZ - z) > 15 || !PointInFrustum(x,27,z)){
-         //hidden flag
-         if(meshData[i][3] == 0){
-            hideMesh(i);
-            printf("Mesh #%d is hidden\n",i);
-            meshData[i][3] = 1;
+      if(abs(usrX - x) > 15 || abs(usrZ - z) > 15){
+         if(!PointInFrustum(x,26,z) && !PointInFrustum(x,25,z)){
+            //hidden flag
+            if(meshData[i][3] == 0  && meshData[i][6] == 0){
+               hideMesh(i);
+               meshData[i][3] = 1;
+            }
          }
       }
    }
@@ -904,6 +934,9 @@ void updateMap(){
    GLfloat white[]  = {1.0, 1.0, 1.0, 1.75};
    GLfloat yellow[] = {0.5, 0.5, 0.0, 0.75};
    GLfloat black[] = {0.0, 0.0, 0.0, 0.5};
+   GLfloat pink[] = {1.0, 0.0, 1.0, 0.5};
+   GLfloat darkBlue[] = {0.3, 0.0, 1.0, 0.5};
+   GLfloat hotPink[] = {1.0, 0.0, 0.7, 1.75};
 
    int x1,y1,x2,y2;
    int size = 3;
@@ -922,7 +955,6 @@ void updateMap(){
             y2 = screenHeight-loc+((int)x*-size)+5;
             draw2Dbox(x1,y1,x2,y2);
 
-            //printf("%d\n",stairFlag);
             //stairs for outdoor level
             if(levelFlag == 1){
                set2Dcolour(white);
@@ -940,15 +972,34 @@ void updateMap(){
                x2 = screenWidth-loc+(stairUpLocZ*size)+5;
                y2 = screenHeight-loc+(stairUpLocX*size)+5;
                draw2Dbox(x1,y1,x2,y2);
-                for(int j = 0; j < 10; j++){
-                  set2Dcolour(black);
-                  x1 = screenWidth-loc+((int)meshData[j][1]*size);
-                  y1 = screenHeight-loc+((int)meshData[j][0]*size);
-                  x2 = screenWidth-loc+((int)meshData[j][1]*size)+5;
-                  y2 = screenHeight-loc+((int)meshData[j][0]*size)+5;
-                  draw2Dbox(x1,y1,x2,y2);
+               for(int j = 0; j < 9; j++){
+                  if((int)meshData[j][4] == 3 && meshData[j][6] == 0){
+                     set2Dcolour(darkBlue);
+                     x1 = screenWidth-loc+((int)meshData[j][1]*size);
+                     y1 = screenHeight-loc+((int)meshData[j][0]*size);
+                     x2 = screenWidth-loc+((int)meshData[j][1]*size)+5;
+                     y2 = screenHeight-loc+((int)meshData[j][0]*size)+5;
+                     draw2Dbox(x1,y1,x2,y2);
+                  }
+                  if((int)meshData[j][4] == 2 && meshData[j][6] == 0){
+                     set2Dcolour(pink);
+                     x1 = screenWidth-loc+((int)meshData[j][1]*size);
+                     y1 = screenHeight-loc+((int)meshData[j][0]*size);
+                     x2 = screenWidth-loc+((int)meshData[j][1]*size)+5;
+                     y2 = screenHeight-loc+((int)meshData[j][0]*size)+5;
+                     draw2Dbox(x1,y1,x2,y2);
+                  }
+                  if((int)meshData[j][4] == 1 && meshData[j][6] == 0){
+                     set2Dcolour(hotPink);
+                     x1 = screenWidth-loc+((int)meshData[j][1]*size);
+                     y1 = screenHeight-loc+((int)meshData[j][0]*size);
+                     x2 = screenWidth-loc+((int)meshData[j][1]*size)+5;
+                     y2 = screenHeight-loc+((int)meshData[j][0]*size)+5;
+                     draw2Dbox(x1,y1,x2,y2);
+                  }
                } 
             }
+            set2Dcolour(black);
 
             //draw the background and random blocs
             if(world[i][25][k] == 0){
@@ -998,17 +1049,34 @@ void updateMap(){
                x2 = screenWidth-loc+(stairUpLocZ*size)+5;
                y2 = screenHeight-loc+(stairUpLocX*size)+5;
                draw2Dbox(x1,y1,x2,y2);
-               for(int j = 0; j < 10; j++){
-                  if(meshData[j][3] == 0){
-                     set2Dcolour(black);
+               for(int j = 0; j < 9; j++){
+                  if((int)meshData[j][4] == 3 && meshData[j][3] == 0 && meshData[j][6] == 0){
+                     set2Dcolour(darkBlue);
                      x1 = screenWidth-loc+((int)meshData[j][1]*size);
                      y1 = screenHeight-loc+((int)meshData[j][0]*size);
                      x2 = screenWidth-loc+((int)meshData[j][1]*size)+5;
                      y2 = screenHeight-loc+((int)meshData[j][0]*size)+5;
                      draw2Dbox(x1,y1,x2,y2);
                   }
-               } 
+                  if((int)meshData[j][4] == 2 && meshData[j][3] == 0 && meshData[j][6] == 0){
+                     set2Dcolour(pink);
+                     x1 = screenWidth-loc+((int)meshData[j][1]*size);
+                     y1 = screenHeight-loc+((int)meshData[j][0]*size);
+                     x2 = screenWidth-loc+((int)meshData[j][1]*size)+5;
+                     y2 = screenHeight-loc+((int)meshData[j][0]*size)+5;
+                     draw2Dbox(x1,y1,x2,y2);
+                  }
+                  if((int)meshData[j][4] == 1 && meshData[j][3] == 0 && meshData[j][6] == 0){
+                     set2Dcolour(hotPink);
+                     x1 = screenWidth-loc+((int)meshData[j][1]*size);
+                     y1 = screenHeight-loc+((int)meshData[j][0]*size);
+                     x2 = screenWidth-loc+((int)meshData[j][1]*size)+5;
+                     y2 = screenHeight-loc+((int)meshData[j][0]*size)+5;
+                     draw2Dbox(x1,y1,x2,y2);
+                  }
+               }
             }
+            set2Dcolour(black);
 
             //draw the background and random blocs
             if(FOWmapWorld[i][25][k] == 0){

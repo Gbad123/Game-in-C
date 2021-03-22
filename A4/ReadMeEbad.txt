@@ -186,3 +186,35 @@ Assumption
 
 Limitations
   Stairs for both level show up, regardless on which level
+
+
+/********* Assignment 4 **************/
+
+Ai
+  9 mesh items are drawn each can be either
+  cactus, fish, or bat
+
+cactus -> Light Purple
+  Stationary, waits player to enter range then attacks
+  turn counter enscures it can only attack if either the player has moved or attacked it
+
+fish -> Pink
+  Moving around the room
+  If the player sees it or within a range to activate, the ai starts chaseing the player
+
+bat -> Hot Pink
+  Moving around the maze
+  If the player sees it, the ai starts chasing the player
+
+Algorithum
+  Modified A*
+  The ai calculates the g,h,f vectors using current location and last saved player location
+  Moves the square with the smallest f value
+  If multiple squares have the same f value, move to the smallest h
+  Else stay where you are
+  The Ai stops moving if its 2 units away from the player, to allow the player to trigger combact
+
+Limitations
+  As best move is being calculated each new spot
+  Sometimes the ai can get stuck as the best is move back and forth between 2 spots
+  To counter this, when the player moves again the best path is recalculated
